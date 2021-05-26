@@ -1,5 +1,5 @@
 # Coxeter groups and properness
-For finite irreducible Coxeter groups, the notion of _proper_ness for group
+For finite irreducible Coxeter groups, the notion of _properness_ for group
 elements was introduced in [2012.09749](https://arxiv.org/abs/2012.09749),
 and has geometric motivations, as discussed in
 [2007.09238](https://arxiv.org/abs/2007.09238) and
