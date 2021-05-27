@@ -1,8 +1,11 @@
 #!/usr/bin/env sage
 import argparse
+import functools
+import pathlib
 import sys
 
 from tqdm import tqdm
+from tqdm.contrib.concurrent import process_map
 
 
 # Finite families of the finite irreducible Coxeter groups.
@@ -65,12 +68,26 @@ def reduced_word(w, latex):
   )
 
 
+def action(W, latex, w):
+  if not proper(W, w): return None
+  return reduced_word(w, latex=latex)
+
+
 def main(args):
   W = CoxeterGroup([args.type, args.n])
-  for w in tqdm(W):
-    if proper(W, w):
-      sys.stdout.write(reduced_word(w, latex=args.latex))
-      sys.stdout.write('\n')
+
+  rws = process_map(
+    functools.partial(action, W, args.latex),
+    W,
+    max_workers=args.num_processes,
+    chunksize=len(W)//args.num_processes,
+  )
+
+  with args.file.open('w') as f:
+    for rw in rws:
+      if rw is None: continue
+      f.write(rw)
+      f.write('\n')
 
 
 if __name__ == '__main__':
@@ -78,10 +95,16 @@ if __name__ == '__main__':
     'List proper Coxeter group elements for finite families.'
   )
   parser.add_argument(
-    '--type', type=str, help='Coxeter Type',
+    '--type', type=str, required=True, help='Coxeter Type',
   )
   parser.add_argument(
-    '-n', type=int, help='n',
+    '--file', type=pathlib.Path, required=True, help='File to store results',
+  )
+  parser.add_argument(
+    '--num-processes', type=int, default=1, help='File to store results',
+  )
+  parser.add_argument(
+    '-n', type=int, required=True, help='n',
   )
   parser.add_argument(
     '--latex', action='store_true', help='enables latex pretty printing',
