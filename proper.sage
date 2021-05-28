@@ -2,6 +2,7 @@
 import argparse
 import functools
 import pathlib
+import random
 import sys
 
 from tqdm import tqdm
@@ -73,21 +74,54 @@ def action(W, latex, w):
   return reduced_word(w, latex=latex)
 
 
-def main(args):
-  W = CoxeterGroup([args.type, args.n])
-
+def handle_chunk(W, latex, num_processes, length):
+  chunk = list(W.elements_of_length(length))
   rws = process_map(
-    functools.partial(action, W, args.latex),
-    W,
+    functools.partial(action, W, latex),
+    chunk,
+    max_workers=num_processes,
+    chunksize=5000,
+    desc=f'l={length}',
+  )
+  return rws
+
+
+def main(args):
+  print('creating group ...')
+  W = CoxeterGroup([args.type, args.n], implementation='permutation')
+  len_w0 = W.long_element().length()
+
+  print('shuffling')
+  lengths = list(range(len_w0+1))
+  random.shuffle(lengths)
+
+  print('chunking ...')
+  rws_chunks = process_map(
+    functools.partial(handle_chunk, W, args.latex, args.num_processes),
+    lengths,
     max_workers=args.num_processes,
-    chunksize=len(W)//args.num_processes,
+    chunksize=(len_w0+1) // args.num_processes,
+    desc='chunker',
   )
 
+  print('filtering ...')
+  rws = [
+    rw
+    for rws in rws_chunks
+    for rw in rws
+    if rw is not None
+  ]
+
+  print('sorting ...')
+  rws.sort(key=lambda rw: (len(rw), rw))
+
+  print('writing to file ...')
   with args.file.open('w') as f:
     for rw in rws:
-      if rw is None: continue
       f.write(rw)
       f.write('\n')
+
+  print('done!')
 
 
 if __name__ == '__main__':
