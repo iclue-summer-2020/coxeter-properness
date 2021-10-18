@@ -1,2 +1,18 @@
 *.swp
 *.sage.py
+
+# Paket dependency manager
+.paket/
+paket-files/
+
+.fake
+.ionide
+
+E8/
+**/*E8*
+
+*.7z
+
+__pycache__/
+
+.vscode/
